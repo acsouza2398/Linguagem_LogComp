@@ -2,13 +2,20 @@ from rply import ParserGenerator
 
 class Parser():
     def __init__(self):
-        self.pg = ParserGenerator(['BEGIN', 'END', 'WITH', 'DO', 'IF', 'THEN', 'FOR', 'BATCHES', 'AND', 'UNTIL', 'IN', 'TO', 'NEED', 'IMPERAL_TYPE', 'METRIC_TYPE', 'TEMPERATURE_TYPE', 'TIME_TYPE', 'STATUS_TYPE', 'STATUS_SIZE', 'STATUS_ACTION', 'STATUS_UTENSIL', 'STATUS_PLACE', 'STRING', 'NEWLINE', 'FLOAT', 'INT', 'COLON', 'COMMA', 'REPEAT', 'FINISHED'])
+        self.pg = ParserGenerator(['BEGIN', 'END', 'WITH', 'DO', 'IF', 'THEN', 'FOR', 'BATCHES', 'AND', 'UNTIL', 'IN', 'TO', 'NEED', 'IMPERAL_TYPE', 'METRIC_TYPE', 'TEMPERATURE_TYPE', 'TIME_TYPE', 'STATUS_TYPE', 'STATUS_SIZE', 'STATUS_ACTION', 'STATUS_UTENSIL', 'STATUS_PLACE', 'STRING', 'NEWLINE', 'FLOAT', 'INT', 'COLON', 'COMMA', 'REPEAT', 'FINISHED', 'START', 'SERVE'])
 
     def parse(self):
-        @self.pg.production('program : BEGIN STRING COLON recipe FINISHED END')
+        @self.pg.production('program : BEGIN STRING COLON recipe FINISHED END START meal SERVE')
         def program(p):
             print(p)
             print("Program parsed")
+            return p
+        
+        @self.pg.production('meal: STRING COMMA meal')
+        @self.pg.production('meal: STRING COMMA')
+        def meal(p):
+            print(p)
+            print("Meal parsed")
             return p
         
         @self.pg.production('recipe : WITH COLON ingredients DO COLON steps')

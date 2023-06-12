@@ -15,9 +15,9 @@ status = ["COLD", "FROZEN", "ROOM_TEMP", "WARM", "HOT", "MELTED", "TINY", "SMALL
 
 action = ["IN", "FOR", "UNTIL", "TO", "ADD"]
 
-declare = ["NEED", "IF", "FOR", "MAKE", "WITH", "DO"]
+declare = ["NEED", "IF", "FOR", "MAKE", "WITH", "DO", "START"]
 
-end = ["ENJOY", "REPEAT", "FINISHED"]
+end = ["ENJOY", "REPEAT", "FINISHED", "SERVE"]
 
 
 class Token:
@@ -70,7 +70,7 @@ class Tokenizer:
             raise Exception("Entrada vazia")
         else:
             self.next = Token('EOF', '')
-        print(self.next.type, self.next.value)
+        #print(self.next.type, self.next.value)
 
     def peek(self):
         p = self.position
@@ -104,14 +104,9 @@ class Parser:
             tokenizer.selectNext()
             return n
         elif tokenizer.next.type == "WORD":
-            if tokenizer.next.value in measurement or tokenizer.next.value in time_temp or tokenizer.next.value in status or tokenizer.next.value in action:
-                str = StrVal(tokenizer.next.value)
-                tokenizer.selectNext()
-                return str
-            else:	
-                n = IdentifierOp(tokenizer.next.value)
-                tokenizer.selectNext()
-                return n
+            str = StrVal(tokenizer.next.value)
+            tokenizer.selectNext()
+            return str
         else:
             raise Exception("Símbolo inválido")
         
@@ -120,7 +115,7 @@ class Parser:
         children = []
         while tokenizer.next.type != "EOF":
             children.append(Parser.parseStatement(tokenizer))
-            if tokenizer.next.value == "REPEAT" or tokenizer.next.value == "ENJOY" or tokenizer.next.value == "FINISHED" or tokenizer.next.type == "EOF":
+            if tokenizer.next.value == "REPEAT" or tokenizer.next.value == "ENJOY" or tokenizer.next.value == "FINISHED" or tokenizer.next.type == "EOF" or tokenizer.next.type == "SERVE":
                 break
             tokenizer.selectNext()
         return BlockOp(children)
@@ -139,8 +134,7 @@ class Parser:
                             while tokenizer.next.value == "NEED":
                                 tokenizer.selectNext()
                                 tokenizer.selectNext()
-                                i = IdentifierOp(tokenizer.next.value)
-                                tokenizer.selectNext()
+                                i = Parser.parseRelExpression(tokenizer)
                                 tokenizer.selectNext()
                                 a = Parser.parseRelExpression(tokenizer)
                                 tokenizer.selectNext()
@@ -169,7 +163,7 @@ class Parser:
                         if tokenizer.next.type == "WORD":
                             if tokenizer.next.value == "ENJOY":
                                 tokenizer.selectNext()
-                                return FuncCallOp(i, b)
+                                return FuncDecOp(i, b)
                             else:
                                 raise Exception("Símbolo inválido")
                         else:
@@ -230,7 +224,7 @@ class Parser:
                             raise Exception("Símbolo inválido")
                     else:
                         raise Exception("Símbolo inválido")
-                if tokenizer.next.value == "DO":
+                elif tokenizer.next.value == "DO":
                     tokenizer.selectNext()
                     if tokenizer.next.type == "COLON":
                         tokenizer.selectNext()
@@ -247,8 +241,29 @@ class Parser:
                             raise Exception("Símbolo inválido")
                     else:
                         raise Exception("Símbolo inválido")
+                elif tokenizer.next.value == "START":
+                    tokenizer.selectNext()
+                    if tokenizer.next.type == "NEWLINE":
+                        tokenizer.selectNext()
+                        r = []
+                        while tokenizer.next.type == "WORD" and tokenizer.next.value != "SERVE":
+                            r.append(FuncCallOp(IdentifierOp(tokenizer.next.value)))
+                            tokenizer.selectNext()
+                            if tokenizer.next.type == "COMMA":
+                                tokenizer.selectNext()
+                                if tokenizer.next.type == "NEWLINE":
+                                    tokenizer.selectNext()
+                                else:
+                                    raise Exception("Símbolo inválido")
+                            else:
+                                raise Exception("Símbolo inválido")
+                        if tokenizer.next.value == "SERVE":
+                            return MealOp(r)
+                        else:
+                            raise Exception("Símbolo inválido")
+                    else:
+                        raise Exception("Símbolo inválido")
             elif tokenizer.next.value in end:
-                print("end")
                 return NoOp()
             else:
                 s = []
@@ -301,7 +316,7 @@ class IntVal(Node):
         self.value = value
     
     def evaluate(self, symbol_table):
-        return ["Int", int(self.value)]
+        return ["Number", self.value]
     
 class StrVal(Node):
     def __init__(self, value):
@@ -318,21 +333,13 @@ class NoOp(Node):
     def evaluate(self, symbol_table):
         pass
 
-class PrintOp(Node):
-    def __init__(self, children):
-        self.value = None
-        self.children = children
-    
-    def evaluate(self, symbol_table):
-        print(self.children.evaluate(symbol_table)[1])
-
 class AssignOp(Node):
     def __init__(self, children):
         self.value = None
         self.children = children
     
     def evaluate(self, symbol_table):
-        symbol_table.setter(self.children[0].value, self.children[1].evaluate(symbol_table))
+        symbol_table.setter(self.children, self.children[1].evaluate(symbol_table))
 
 class BlockOp(Node):
     def __init__(self, children):
@@ -340,10 +347,7 @@ class BlockOp(Node):
     
     def evaluate(self, symbol_table):
         for child in self.children:
-            #print(child.value)
             if child is not None:
-                if child.value == "Return":
-                    return child.evaluate(symbol_table)
                 child.evaluate(symbol_table)
 
 class IdentifierOp(Node):
@@ -359,8 +363,9 @@ class WhileOp(Node):
         self.value = None
     
     def evaluate(self, symbol_table):
-        while self.children[0].evaluate(symbol_table)[1] != 0:
-            self.children[1].evaluate(symbol_table)
+        print("   Repeat " + str(self.children[0].evaluate(symbol_table)[1]) + " times:")
+        self.children[1].evaluate(symbol_table)
+        print("   End repeat")
 
 class IfOp(Node):
     def __init__(self, children):
@@ -368,11 +373,9 @@ class IfOp(Node):
         self.value = None
     
     def evaluate(self, symbol_table):
-        if self.children[0].evaluate(symbol_table):
-            self.children[1].evaluate(symbol_table)
-        else:
-            if len(self.children) == 3:
-                self.children[2].evaluate(symbol_table)
+        print("   If " + str(self.children[0][0].evaluate(symbol_table)[1]) + " " + str(self.children[0][1].evaluate(symbol_table)[1]) + ":")
+        self.children[1].evaluate(symbol_table)
+        print("   End if")
 
 class VarDeclOp(Node):
     def __init__(self, value, children):
@@ -380,20 +383,10 @@ class VarDeclOp(Node):
         self.value = value
     
     def evaluate(self, symbol_table):
-            if len(self.children) == 1:
-                if self.value == "Int":
-                    symbol_table.create(self.children[0].value, [self.value, 0])
-                elif self.value == "String":
-                    symbol_table.create(self.children[0].value, [self.value, ""])
-                else:
-                    raise Exception("Tipo inválido")
-            else:
-                if self.value == "Int" and self.children[1].evaluate(symbol_table)[0] == "Int":
-                    symbol_table.create(self.children[0].value, [self.value, self.children[1].evaluate(symbol_table)[1]])
-                elif self.value == "String" and self.children[1].evaluate(symbol_table)[0] == "String":
-                    symbol_table.create(self.children[0].value, [self.value, self.children[1].evaluate(symbol_table)[1]])
-                else:
-                    raise Exception("Tipo inválido")
+        a = []
+        for i in self.children:
+            a.append(i.evaluate(symbol_table))
+        symbol_table.setter(a[0][1], [a[1][1], a[2][1]])
                 
 class IngredientDeclOp(Node):
     def __init__(self, children):
@@ -401,7 +394,12 @@ class IngredientDeclOp(Node):
         self.value = None
     
     def evaluate(self, symbol_table):
-        pass
+        print(" Separating Ingredients")
+        for i in self.children:
+            i.evaluate(symbol_table)
+            print("   Get " + i.value + ": " + i.children[0].value + " with amount: " + i.children[1].value + " " + i.children[2].value)
+        print(" Ingredients Separated \n")
+
 
 class StepsDecOp(Node):
     def __init__(self, children):
@@ -409,7 +407,9 @@ class StepsDecOp(Node):
         self.value = None
     
     def evaluate(self, symbol_table):
-        pass
+        print(" Steps to follow")
+        self.children.evaluate(symbol_table)
+        print(" Steps Done \n")
 
 class ActionDecOp(Node):
     def __init__(self, children):
@@ -417,52 +417,55 @@ class ActionDecOp(Node):
         self.value = None
     
     def evaluate(self, symbol_table):
-        pass
+        a = "   "
+        for i in self.children:
+            i.evaluate(symbol_table)
+            a += i.value + " "
+        print(a)
             
+class MealOp(Node):
+    def __init__(self, children):
+        self.children = children
+        self.value = None
+    
+    def evaluate(self, symbol_table):
+        print("\nMeal to be prepared with " + str(len(self.children)) + " recipes:")
+        for i in self.children:
+            print("\nRecipe to be followed: " + i.value.value)
+            i.evaluate(symbol_table)	
+            print("Recipe " + i.value.value + " finished \n\n")
+        print("Meal Done")
+        print("Enjoy your meal!")
+
 class FuncDecOp(Node):
     def __init__(self, value, children):
         self.children = children
         self.value = value
     
     def evaluate(self, symbol_table):
-        FuncTable.create(self.children[0].value, self)
+        print("Recipe " + self.value.value + " written down")
+        FuncTable.create(self.value.value, self)
 
 class FuncCallOp(Node):
-    def __init__(self, value, children):
-        self.children = children
+    def __init__(self, value):
+        self.children = None
         self.value = value
     
     def evaluate(self, symbol_table):
         args = []
-        new_func = FuncTable.getter(self.value)
+        new_func = FuncTable.getter(self.value.value)
         new_table = SymbolTable()
 
-        for i in range(len(self.children)):
-            args.append(new_func.children[1][i].children[0].value)
-            new_func.children[1][i].evaluate(new_table)
+        #print(new_func.children, " FuncCallOp")
 
-        for i in range(len(args)):
-            new_table.setter(args[i], self.children[i].evaluate(symbol_table))
-
-        return new_func.children[2].evaluate(new_table)
-    
-class ReturnOp(Node):
-    def __init__(self, children):
-        self.value = "Return"
-        self.children = children
-    
-    def evaluate(self, symbol_table):
-        return self.children.evaluate(symbol_table)
+        return new_func.children.evaluate(new_table)
 
 class SymbolTable:
     def __init__(self):
         self.table = {}
     
     def setter(self, name, value):
-        if self.table[name][0] == value[0]:
-            self.table[name][1] = value[1]
-        else:
-            raise Exception("Tipo inválido")
+        self.table[name] = value
     
     def getter(self, name):
         return self.table[name]
@@ -489,6 +492,7 @@ def main():
     #code = read_file(sys.argv[1])
     code = read_file("exemplo_receita.txt")
     symbol_table = SymbolTable()
-    Parser.run(code).evaluate(symbol_table)
+    c = Parser.run(code)
+    c.evaluate(symbol_table)
 
 main()

@@ -36,6 +36,8 @@ class Lexer():
         self.lexer.add('COMMA', r',')
         self.lexer.add('REPEAT', r'REPEAT')
         self.lexer.add('FINISHED', r'FINISHED')
+        self.lexer.add('START', r'START')
+        self.lexer.add('SERVE', r'SERVE')
         self.lexer.ignore(r'[ \t]+')
 
 

@@ -30,3 +30,20 @@ ADD strawberry TO SMALL RAMEKIN,
 REPEAT
 FINISHED
 ENJOY
+
+MAKE whipped_cream
+WITH:
+NEED heavyCream 1 CUPS
+NEED sugar 2 TBSP
+NEED vanillaExtract 0.5 TSP
+DO:
+IN LARGE BOWL ADD heavyCream AND sugar AND vanillaExtract,
+WHIP heavyCream FOR 4 MINUTES,
+IN FRIDGE COOL FOR 24 HOURS,
+FINISHED
+ENJOY
+
+START
+cheesecake_for_two,
+whipped_cream,
+SERVE
