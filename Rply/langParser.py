@@ -2,117 +2,78 @@ from rply import ParserGenerator
 
 class Parser():
     def __init__(self):
-        self.pg = ParserGenerator(['BEGIN', 'END', 'WITH', 'DO', 'IF', 'THEN', 'FOR', 'BATCHES', 'AND', 'UNTIL', 'IN', 'TO', 'NEED', 'IMPERAL_TYPE', 'METRIC_TYPE', 'TEMPERATURE_TYPE', 'TIME_TYPE', 'STATUS_TYPE', 'STATUS_SIZE', 'STATUS_ACTION', 'STATUS_UTENSIL', 'STATUS_PLACE', 'STRING', 'NEWLINE', 'FLOAT', 'INT', 'COLON', 'COMMA', 'REPEAT', 'FINISHED', 'START', 'SERVE'])
+        self.pg = ParserGenerator(['MAKE', 'ENJOY', 'WITH', 'DO', 'IF', 'THEN', 'FOR', 'BATCHES', 'NEED', 'UNIT', 'STATUS', 'REPEAT', 'FINISHED', 'START', 'SERVE', 'STRING', 'NEWLINE', 'FLOAT', 'INT', 'COLON', 'COMMA'])
 
     def parse(self):
-        @self.pg.production('program : BEGIN STRING COLON recipe FINISHED END START meal SERVE')
-        def program(p):
+        @self.pg.production('structure : recipe START meal SERVE')
+        def structure(p):
             print(p)
             print("Program parsed")
             return p
         
-        @self.pg.production('meal: STRING COMMA meal')
-        @self.pg.production('meal: STRING COMMA')
+        @self.pg.production('meal : STRING COMMA meal')
+        @self.pg.production('meal : STRING COMMA')
         def meal(p):
             print(p)
             print("Meal parsed")
             return p
         
-        @self.pg.production('recipe : WITH COLON ingredients DO COLON steps')
-        @self.pg.production('recipe : WITH COLON ingredients')
+        @self.pg.production('recipe : MAKE STRING WITH COLON ingredients DO COLON steps ENJOY recipe')
+        @self.pg.production('recipe : ')
         def recipe(p):
             print(p)
             print("Recipe parsed --------------------")
             return p
         
-        
-        @self.pg.production('ingredients : ingredient ingredients')
-        @self.pg.production('ingredients : ingredient')
+        @self.pg.production('ingredients : NEED STRING INT UNIT ingredients')
+        @self.pg.production('ingredients : NEED STRING INT UNIT')
+        @self.pg.production('ingredients : NEED STRING FLOAT UNIT ingredients')
+        @self.pg.production('ingredients : NEED STRING FLOAT UNIT')
         @self.pg.production('ingredients : ')
         def ingredients(p):
             print("All Ingredients parsed --------------------")
-            print(p)
+            #print(p)
             return p
         
-        @self.pg.production('ingredient : NEED STRING FLOAT IMPERAL_TYPE')
-        @self.pg.production('ingredient : NEED STRING FLOAT METRIC_TYPE')
-        @self.pg.production('ingredient : NEED STRING INT IMPERAL_TYPE')
-        @self.pg.production('ingredient : NEED STRING INT METRIC_TYPE')
-        @self.pg.production('ingredient : NEED STRING INT')
-        @self.pg.production('ingredient : NEED STRING FLOAT')
-        @self.pg.production('ingredient : ')
-        def ingredient(p):
-            print("Ingredient parsed")
-            print(p)
-            return p
-        
-        @self.pg.production('steps : step steps')
-        @self.pg.production('steps : step')
-        @self.pg.production('steps : ')
+        @self.pg.production('steps : action steps')
+        @self.pg.production('steps : action')
+        @self.pg.production('steps : loop steps')
+        @self.pg.production('steps : loop')
+        @self.pg.production('steps : if_ steps')
+        @self.pg.production('steps : if_')
+        @self.pg.production('steps : FINISHED')
         def steps(p):
             print("All Steps parsed --------------------")
             print(p)
             return p
         
-        @self.pg.production('step : IF status THEN status COMMA steps')
-        @self.pg.production('step : status COMMA steps')
-        @self.pg.production('step : FOR INT BATCHES COLON steps')
-        @self.pg.production('step : REPEAT')
-        @self.pg.production('step : ')
-        def step(p):
-            print("Step parsed -------------------- // --------------------")
+        @self.pg.production('action : STRING COMMA')
+        @self.pg.production('action : INT COMMA')
+        @self.pg.production('action : FLOAT COMMA')
+        @self.pg.production('action : UNIT COMMA')
+        @self.pg.production('action : STATUS COMMA')
+        @self.pg.production('action : STRING action')
+        @self.pg.production('action : INT action')
+        @self.pg.production('action : FLOAT action')
+        @self.pg.production('action : UNIT action')
+        @self.pg.production('action : STATUS action')
+        @self.pg.production('action : REPEAT')
+        def action(p):
+            print("All Actions parsed --------------------")
             print(p)
             return p
         
-        @self.pg.production('status : STATUS_TYPE status')
-        @self.pg.production('status : STATUS_SIZE status')
-        @self.pg.production('status : STATUS_ACTION status')
-        @self.pg.production('status : STATUS_UTENSIL status')
-        @self.pg.production('status : STATUS_PLACE status')
-        @self.pg.production('status : STRING status')
-        @self.pg.production('status : STATUS_TYPE')
-        @self.pg.production('status : STATUS_SIZE')
-        @self.pg.production('status : STATUS_ACTION')
-        @self.pg.production('status : STATUS_UTENSIL')
-        @self.pg.production('status : STATUS_PLACE')
-        @self.pg.production('status : STRING')
-        @self.pg.production('status : operator')
-        @self.pg.production('status : timetemp')
-        @self.pg.production('status : ')
-        def status(p):
-            print("Status parsed")
+        @self.pg.production('loop : FOR INT BATCHES COLON action')
+        def loop(p):
+            print("Loop parsed --------------------")
             print(p)
             return p
         
-        @self.pg.production('operator : AND status')
-        @self.pg.production('operator : IN status')
-        @self.pg.production('operator : WITH status')
-        @self.pg.production('operator : UNTIL status')
-        @self.pg.production('operator : TO status')
-        @self.pg.production('operator : ')
-        def operator(p):
-            print("Operator parsed")
+        @self.pg.production('if_ : IF STRING STATUS THEN action')
+        def if_(p):
+            print("If parsed --------------------")
             print(p)
             return p
-        
-        @self.pg.production('timetemp : FOR FLOAT TIME_TYPE status')
-        @self.pg.production('timetemp : FOR INT TIME_TYPE status')
-        @self.pg.production('timetemp : TO FLOAT TIME_TYPE status')
-        @self.pg.production('timetemp : TO INT TIME_TYPE status')
-        @self.pg.production('timetemp : UNTIL FLOAT TIME_TYPE status')
-        @self.pg.production('timetemp : UNTIL INT TIME_TYPE status')
-        @self.pg.production('timetemp : FOR FLOAT TEMPERATURE_TYPE status')
-        @self.pg.production('timetemp : FOR INT TEMPERATURE_TYPE status')
-        @self.pg.production('timetemp : UNTIL FLOAT TEMPERATURE_TYPE status')
-        @self.pg.production('timetemp : UNTIL INT TEMPERATURE_TYPE status')
-        @self.pg.production('timetemp : TO FLOAT TEMPERATURE_TYPE status')
-        @self.pg.production('timetemp : TO INT TEMPERATURE_TYPE status')
-        @self.pg.production('timetemp : ')
-        def timetemp(p):
-            print("Timetemp parsed")
-            print(p)
-            return p
-
         
         @self.pg.error
         def error_handle(token):
